@@ -26,6 +26,11 @@ function showSelectedSong(track) {
                     <div class="song-title">${track.name}</div>
                     <div class="song-artist">${track.artists[0].name}</div>
                 </div>
+                <div class="user-input-section">
+                    <h4>Why do you like this song?</h4>
+                    <textarea id="userDescription" placeholder="The beat, lyrics, mood, energy, memories..." onkeypress="handleDescriptionKeyPress(event, '${track.id}')"></textarea>
+                    <button class="rec-btn" id="aiRecBtn" onclick="getAIRecommendations('${track.id}')">Get AI-Powered Recommendations</button>
+                </div>
             </div>
         `;
     }, 500);
@@ -88,9 +93,6 @@ function displaySearchResults(tracks) {
         button.textContent = 'Get Recommendations';
         button.onclick = () => {
             showSelectedSong(track);
-            setTimeout(() => {
-                getRecommendations(track.id);
-            }, 800); // Delay recommendations until after transition
         };
         
         div.appendChild(songInfo);
@@ -99,21 +101,83 @@ function displaySearchResults(tracks) {
     });
 }
 
-async function getRecommendations(trackId) {
+function createLoadingPulse() {
+    return `
+        <div class="loading-pulse">
+            <div class="loading-bar" style="background: #0f5132;"></div>
+            <div class="loading-bar" style="background: #0f5132;"></div>
+            <div class="loading-bar" style="background: #0f5132;"></div>
+        </div>
+    `;
+}
+
+async function getAIRecommendations(trackId) {
+    const userDescription = document.getElementById('userDescription').value;
+    
+    if (!userDescription.trim()) {
+        alert('Please tell us why you love this song first!');
+        return;
+    }
+    
+    // Show loading state on button
+    const button = document.getElementById('aiRecBtn');
+    const originalText = button.innerHTML;
+    button.innerHTML = `Finding matches... ${createLoadingPulse()}`;
+    button.disabled = true;
+    
+
+    
     try {
-        const response = await fetch(`/api/recommendations?seed_tracks=${trackId}`);
+        const response = await fetch('/api/ai-recommendations', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                trackId: trackId,
+                userDescription: userDescription
+            })
+        });
+        
         const data = await response.json();
         
         if (data.error) {
-            console.error('API Error:', data.error, data.details);
+            console.error('API Error:', data.error, data.debug);
             document.getElementById('recommendations').innerHTML = `<p>Error: ${data.error}</p>`;
             return;
         }
         
-        displayRecommendations(data.tracks);
+        console.log('Debug info:', data.debug);
+        
+        // First fade out the user input section
+        const userInputSection = document.querySelector('.user-input-section');
+        if (userInputSection) {
+            userInputSection.style.transition = 'all 0.5s ease-out';
+            userInputSection.style.opacity = '0';
+            userInputSection.style.transform = 'translateY(-20px)';
+            
+            setTimeout(() => {
+                userInputSection.remove();
+                // Then display recommendations after input section is gone
+                displayRecommendations(data.tracks);
+            }, 500);
+        } else {
+            displayRecommendations(data.tracks);
+        }
     } catch (error) {
-        console.error('Recommendations failed:', error);
+        console.error('AI Recommendations failed:', error);
         document.getElementById('recommendations').innerHTML = `<p>Error: ${error.message}</p>`;
+    } finally {
+        // Reset button
+        button.innerHTML = originalText;
+        button.disabled = false;
+    }
+}
+
+function handleDescriptionKeyPress(event, trackId) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        getAIRecommendations(trackId);
     }
 }
 
@@ -138,6 +202,12 @@ function displayRecommendations(tracks) {
         const linkDiv = document.createElement('div');
         if (track.external_urls.spotify) {
             linkDiv.innerHTML = `<a href="${track.external_urls.spotify}" target="_blank" class="spotify-link">Listen on Spotify</a>`;
+        }
+        
+        // Add hover tooltip for AI explanation
+        if (track.ai_explanation) {
+            div.setAttribute('data-explanation', track.ai_explanation);
+            div.classList.add('has-explanation');
         }
         
         div.appendChild(songInfo);
