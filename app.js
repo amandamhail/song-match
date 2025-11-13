@@ -1,3 +1,9 @@
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        searchSongs();
+    }
+}
+
 async function searchSongs() {
     const query = document.getElementById('songSearch').value;
     if (!query) return;
@@ -30,9 +36,17 @@ async function getRecommendations(trackId) {
     try {
         const response = await fetch(`/api/recommendations?seed_tracks=${trackId}`);
         const data = await response.json();
+        
+        if (data.error) {
+            console.error('API Error:', data.error, data.details);
+            document.getElementById('recommendations').innerHTML = `<p>Error: ${data.error}</p>`;
+            return;
+        }
+        
         displayRecommendations(data.tracks);
     } catch (error) {
         console.error('Recommendations failed:', error);
+        document.getElementById('recommendations').innerHTML = `<p>Error: ${error.message}</p>`;
     }
 }
 
