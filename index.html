@@ -2,23 +2,381 @@
 <html>
 <head>
     <title>Song Match</title>
+    <link href="https://fonts.googleapis.com/css2?family=Circular+Std:wght@300;400;500;700&display=fallback" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-        input, button { padding: 10px; margin: 5px; }
-        .song-item { border: 1px solid #ddd; padding: 10px; margin: 5px 0; }
-        .recommendations { margin-top: 20px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Circular Std', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #191414 0%, #1db954 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 40px;
+            background: linear-gradient(45deg, #1db954, #1ed760);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .search-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 40px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        #songSearch {
+            flex: 1;
+            padding: 16px 20px;
+            border: none;
+            border-radius: 50px;
+            background: #2a2a2a;
+            color: #ffffff;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        #songSearch:focus {
+            background: #3a3a3a;
+            box-shadow: 0 0 0 2px #1db954;
+        }
+        
+        #songSearch::placeholder {
+            color: #b3b3b3;
+        }
+        
+        .search-btn {
+            padding: 16px 32px;
+            border: none;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #1db954, #1ed760);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+        
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(29, 185, 84, 0.3);
+        }
+        
+        .section {
+            margin-bottom: 40px;
+        }
+        
+        .section h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+        
+        .song-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .song-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .song-info {
+            flex: 1;
+        }
+        
+        .song-title {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+            color: #ffffff;
+        }
+        
+        .song-artist {
+            color: #b3b3b3;
+            font-size: 14px;
+        }
+        
+        .rec-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 20px;
+            background: #1db954;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .rec-btn:hover {
+            background: #1ed760;
+            transform: scale(1.05);
+        }
+        
+        .spotify-link {
+            color: #1db954;
+            text-decoration: none;
+            font-weight: 500;
+            margin-left: 12px;
+            transition: color 0.3s ease;
+        }
+        
+        .spotify-link:hover {
+            color: #1ed760;
+        }
+        
+        .recommendations {
+            margin-top: 40px;
+        }
+        
+        .grid {
+            display: block;
+        }
+        
+        .search-results {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .recommendations-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        
+        .selected-song {
+            background: linear-gradient(135deg, rgba(29, 185, 84, 0.2), rgba(29, 185, 84, 0.1));
+            border: 2px solid #1db954;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 40px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            box-shadow: 0 8px 32px rgba(29, 185, 84, 0.3);
+            animation: hero-entrance 0.8s ease-out;
+        }
+        
+        .album-cover {
+            width: 120px;
+            height: 120px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            flex-shrink: 0;
+        }
+        
+        .selected-info {
+            flex: 1;
+        }
+        
+        .selected-song .song-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+        
+        .selected-song .song-artist {
+            font-size: 1.3rem;
+            color: #b3b3b3;
+            margin-bottom: 16px;
+        }
+        
+        .selected-label {
+            color: #1db954;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+
+        
+        .sound-pulse {
+            display: flex;
+            align-items: end;
+            gap: 2px;
+        }
+        
+        .pulse-bar {
+            width: 3px;
+            background: #1db954;
+            border-radius: 2px;
+            animation: pulse-bounce 1.2s ease-in-out infinite;
+        }
+        
+        .pulse-bar:nth-child(1) { height: 8px; animation-delay: 0s; }
+        .pulse-bar:nth-child(2) { height: 12px; animation-delay: 0.2s; }
+        .pulse-bar:nth-child(3) { height: 6px; animation-delay: 0.4s; }
+        .pulse-bar:nth-child(4) { height: 10px; animation-delay: 0.6s; }
+        
+        @keyframes pulse-bounce {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+        
+        .fade-out {
+            animation: fade-out 0.5s ease-out forwards;
+        }
+        
+        @keyframes fade-out {
+            to {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+        }
+        
+        @keyframes hero-entrance {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
+        .popularity-glow {
+            box-shadow: 0 0 20px rgba(29, 185, 84, 0.3);
+        }
+        
+        .song-item.high-popularity {
+            border-left: 4px solid #1db954;
+            background: linear-gradient(90deg, rgba(29, 185, 84, 0.1), rgba(255, 255, 255, 0.05));
+        }
+        
+        .song-item.medium-popularity {
+            border-left: 4px solid #ffd700;
+            background: linear-gradient(90deg, rgba(255, 215, 0, 0.1), rgba(255, 255, 255, 0.05));
+        }
+        
+        .song-item.low-popularity {
+            border-left: 4px solid #666;
+        }
+        
+        .slide-in {
+            animation: slide-in 0.5s ease-out forwards;
+        }
+        
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateX(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .search-pulse {
+            animation: search-pulse 0.6s ease-out;
+        }
+        
+        @keyframes search-pulse {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 0 0 20px rgba(29, 185, 84, 0);
+            }
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(29, 185, 84, 0);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .search-container {
+                flex-direction: column;
+            }
+            
+            .selected-song {
+                flex-direction: column;
+                text-align: center;
+                padding: 24px;
+            }
+            
+            .album-cover {
+                width: 100px;
+                height: 100px;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Song Match</h1>
+
     
-    <div>
-        <input type="text" id="songSearch" placeholder="Search for a song..." onkeypress="handleKeyPress(event)" />
-        <button onclick="searchSongs()">Search</button>
+    <div class="container">
+        <h1>Song Match</h1>
+        
+        <div class="search-container">
+            <input type="text" id="songSearch" placeholder="Search for a song you love..." onkeypress="handleKeyPress(event)" />
+            <button class="search-btn" id="searchButton" onclick="searchSongs()">Search</button>
+        </div>
+        
+
+        
+        <div class="grid">
+            <div id="selectedSong"></div>
+            
+            <div class="section">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+            
+            <div class="section">
+                <div id="recommendations" class="recommendations"></div>
+            </div>
+        </div>
     </div>
-    
-    <div id="searchResults"></div>
-    <div id="recommendations" class="recommendations"></div>
     
     <script src="app.js"></script>
 </body>

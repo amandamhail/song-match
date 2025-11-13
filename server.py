@@ -38,9 +38,13 @@ def search_songs():
     
     token = get_access_token()
     response = requests.get(
-        f'https://api.spotify.com/v1/search?q={query}&type=track&limit=5',
+        f'https://api.spotify.com/v1/search?q={query}&type=track&limit=5&market=US',
         headers={'Authorization': f'Bearer {token}'}
     )
+    
+    if response.status_code != 200:
+        return jsonify({'error': f'Spotify API error: {response.status_code}', 'details': response.text}), response.status_code
+    
     return jsonify(response.json())
 
 @app.route('/api/recommendations')
