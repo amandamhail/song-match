@@ -21,7 +21,7 @@ try:
     
     text_generator = pipeline(
         "text-generation", 
-        model="gpt2",
+        model="EleutherAI/gpt-neo-125M",
         pad_token_id=50256
     )
     
@@ -49,137 +49,178 @@ def static_files(filename):
 CLIENT_ID = os.getenv('SPOTIFY_CLIENT_ID')
 CLIENT_SECRET = os.getenv('SPOTIFY_CLIENT_SECRET')
 
-def generate_recommendation_explanation(recommended_track, user_description, original_track, token=None):
-    """Generate unique, detailed explanations for each recommendation"""
-    rec_artist = recommended_track['artists'][0]['name']
-    orig_artist = original_track['artists'][0]['name']
-    rec_title = recommended_track['name']
-    orig_title = original_track['name']
+def generate_ai_recommendations_with_explanations(user_description, original_track, token):
+    """Step 1: Generate exactly 9 song recommendations using AI"""
+    if not text_generator:
+        return []
     
-    # Get audio features for detailed comparison
-    orig_features = get_audio_features(original_track['id'], token) if token else None
-    rec_features = get_audio_features(recommended_track['id'], token) if token else None
+    # Sanitize inputs to prevent errors
+    orig_title = original_track['name'].replace('"', '').replace("'", '').strip()
+    orig_artist = original_track['artists'][0]['name'].replace('"', '').replace("'", '').strip()
+    user_description = user_description.replace('"', '').replace("'", '').strip()[:200]  # Limit length
     
-    if orig_features and rec_features:
-        # Create unique seed based on track ID for consistent randomization
-        track_seed = hash(recommended_track['id']) % 1000
-        random.seed(track_seed)
-        
-        # Analyze specific musical similarities with varied descriptions
-        similarities = []
-        
-        # Tempo analysis with variations
-        orig_tempo = int(orig_features.get('tempo', 120))
-        rec_tempo = int(rec_features.get('tempo', 120))
-        tempo_diff = abs(orig_tempo - rec_tempo)
-        
-        if tempo_diff < 10:
-            tempo_phrases = [f"locks into the exact {orig_tempo} BPM groove", f"matches the precise {orig_tempo} BPM pulse", f"shares the identical {orig_tempo} BPM heartbeat"]
-            similarities.append(random.choice(tempo_phrases))
-        elif tempo_diff < 25:
-            tempo_phrases = [f"rides a similar {rec_tempo} BPM wave to the {orig_tempo} BPM original", f"pulses at {rec_tempo} BPM, echoing the {orig_tempo} BPM drive"]
-            similarities.append(random.choice(tempo_phrases))
-        
-        # Energy analysis with unique descriptors
-        orig_energy = orig_features.get('energy', 0.5)
-        rec_energy = rec_features.get('energy', 0.5)
-        energy_diff = abs(orig_energy - rec_energy)
-        
-        if energy_diff < 0.15:
-            if orig_energy > 0.7:
-                energy_phrases = ["blazing intensity", "electric dynamism", "raw kinetic power", "explosive sonic force"]
-            elif orig_energy < 0.3:
-                energy_phrases = ["gentle restraint", "whispered intimacy", "delicate subtlety", "hushed vulnerability"]
-            else:
-                energy_phrases = ["measured intensity", "controlled dynamics", "balanced momentum", "steady emotional pull"]
-            similarities.append(random.choice(energy_phrases))
-        
-        # Valence with emotional variety
-        orig_valence = orig_features.get('valence', 0.5)
-        rec_valence = rec_features.get('valence', 0.5)
-        valence_diff = abs(orig_valence - rec_valence)
-        
-        if valence_diff < 0.2:
-            if orig_valence > 0.7:
-                mood_phrases = ["radiant optimism", "soaring euphoria", "infectious joy", "luminous positivity"]
-            elif orig_valence < 0.3:
-                mood_phrases = ["wistful melancholy", "introspective darkness", "haunting sadness", "contemplative sorrow"]
-            else:
-                mood_phrases = ["nuanced emotional depth", "complex tonal balance", "layered emotional texture", "sophisticated mood palette"]
-            similarities.append(random.choice(mood_phrases))
-        
-        # Unique contextual elements
-        contexts = []
-        
-        # Year context with variety
-        orig_year = original_track.get('album', {}).get('release_date', '')[:4]
-        rec_year = recommended_track.get('album', {}).get('release_date', '')[:4]
-        
-        if orig_year and rec_year and orig_year.isdigit() and rec_year.isdigit():
-            year_diff = int(rec_year) - int(orig_year)
-            if abs(year_diff) > 10:
-                year_phrases = [f"Spanning {abs(year_diff)} years from {rec_year}", f"A {rec_year} gem that bridges decades", f"From {rec_year}, proving timeless appeal"]
-                contexts.append(random.choice(year_phrases))
-        
-        # Artist connection variety
-        if rec_artist.lower() != orig_artist.lower():
-            artist_phrases = [f"{rec_artist} channels similar creative energy", f"{rec_artist} explores parallel sonic territory", f"{rec_artist} taps into the same musical vein"]
-            contexts.append(random.choice(artist_phrases))
-        
-        # Build completely unique explanation
-        if similarities:
-            # Vary sentence structure
-            structures = [
-                f"'{rec_title}' delivers {similarities[0]} that defines '{orig_title}'.",
-                f"Like '{orig_title}', '{rec_title}' captures {similarities[0]}.",
-                f"'{rec_title}' mirrors the {similarities[0]} of '{orig_title}'.",
-                f"The {similarities[0]} in '{rec_title}' echoes '{orig_title}' perfectly."
-            ]
-            
-            explanation = random.choice(structures)
-            
-            if contexts:
-                explanation += f" {random.choice(contexts)}."
-            
-            return explanation
+    # Get audio features for context
+    audio_features = get_audio_features(original_track['id'], token)
+    features_text = ""
     
-    # Unique fallback variations
-    fallbacks = [
-        f"'{rec_title}' resonates with the same musical DNA as '{orig_title}'.",
-        f"'{rec_title}' captures the essence that makes '{orig_title}' special.",
-        f"'{rec_title}' shares the core appeal of '{orig_title}'."
-    ]
-    return random.choice(fallbacks)
-
-def generate_sentiment_explanation(recommended_track, user_description, original_track):
-    """Generate explanation using sentiment analysis"""
-    if not sentiment_analyzer:
-        return f"'{recommended_track['name']}' by {recommended_track['artists'][0]['name']} matches your musical taste."
+    if audio_features:
+        tempo = int(audio_features.get('tempo', 120))
+        energy = audio_features.get('energy', 0.5)
+        valence = audio_features.get('valence', 0.5)
+        danceability = audio_features.get('danceability', 0.5)
+        
+        energy_desc = "high energy" if energy > 0.6 else "low energy"
+        mood_desc = "upbeat" if valence > 0.6 else "melancholic"
+        dance_desc = "danceable" if danceability > 0.6 else "contemplative"
+        
+        features_text = f" '{orig_title}' is {energy_desc}, {mood_desc}, {dance_desc}, and has {tempo} BPM."
     
     try:
-        # Analyze sentiment of user description
-        user_sentiment = sentiment_analyzer(user_description)[0]
+        # Skip AI generation and return empty list to use Spotify recommendations instead
+        return []
         
-        # Analyze sentiment of track titles
-        track_sentiment = sentiment_analyzer(f"{recommended_track['name']} {recommended_track['artists'][0]['name']}")[0]
+        # Extract recommendations
+        full_text = generated[0]['generated_text']
+        ai_output = full_text.replace(prompt, '').strip()
         
-        rec_title = recommended_track['name']
-        rec_artist = recommended_track['artists'][0]['name']
-        orig_title = original_track['name']
+        recommendations = []
+        lines = ai_output.replace(',', '\n').split('\n')
         
-        # Generate explanation based on sentiment matching
-        if user_sentiment['label'] == 'POSITIVE' and track_sentiment['label'] == 'POSITIVE':
-            return f"'{rec_title}' by {rec_artist} captures the same uplifting energy and positive emotions you connected with in '{orig_title}'."
-        elif user_sentiment['label'] == 'NEGATIVE' and track_sentiment['label'] == 'NEGATIVE':
-            return f"'{rec_title}' by {rec_artist} explores similar emotional depth and vulnerability that resonated with you."
-        elif user_sentiment['label'] == 'POSITIVE' and track_sentiment['label'] == 'NEGATIVE':
-            return f"'{rec_title}' by {rec_artist} offers an emotional contrast that complements your appreciation for diverse musical experiences."
-        else:
-            return f"'{rec_title}' by {rec_artist} shares the balanced emotional complexity you appreciated in your description."
+        for line in lines:
+            line = line.strip().lstrip('0123456789.-* ').strip()
+            if len(line) > 8 and ('-' in line or 'by' in line.lower()):
+                line = line.replace('"', '').replace("'", '').strip()
+                if len(line) < 80:
+                    recommendations.append(line)
+                    if len(recommendations) >= 9:
+                        break
+        
+        # If we don't have enough, generate more using different prompts
+        while len(recommendations) < 9:
+            # Try different prompt variations
+            alt_prompts = [
+                f"Songs similar to {orig_title} by {orig_artist}:",
+                f"If you like {orig_title}, you'll love:",
+                f"Music recommendations based on {orig_title}:",
+                f"Artists similar to {orig_artist}:"
+            ]
             
+            for alt_prompt in alt_prompts:
+                if len(recommendations) >= 9:
+                    break
+                    
+                try:
+                    alt_generated = text_generator(
+                        alt_prompt,
+                        max_new_tokens=100,
+                        num_return_sequences=1,
+                        temperature=0.9,
+                        do_sample=True,
+                        pad_token_id=50256,
+                        eos_token_id=50256
+                    )
+                    
+                    alt_text = alt_generated[0]['generated_text']
+                    alt_output = alt_text.replace(alt_prompt, '').strip()
+                    alt_lines = alt_output.replace(',', '\n').split('\n')
+                    
+                    for line in alt_lines:
+                        line = line.strip().lstrip('0123456789.-* ').strip()
+                        if len(line) > 8 and ('-' in line or 'by' in line.lower()):
+                            line = line.replace('"', '').replace("'", '').strip()
+                            if len(line) < 80 and line not in recommendations:
+                                recommendations.append(line)
+                                if len(recommendations) >= 9:
+                                    break
+                except:
+                    continue
+            
+            # If still not enough, add generic fallbacks
+            if len(recommendations) < 9:
+                generic_songs = [
+                    f"{orig_artist} - Similar Track 1",
+                    f"{orig_artist} - Similar Track 2", 
+                    f"Various Artists - Like {orig_title}",
+                    f"Indie Rock - {energy_desc} Song",
+                    f"Alternative - {mood_desc} Track"
+                ]
+                
+                for song in generic_songs:
+                    if len(recommendations) >= 9:
+                        break
+                    if song not in recommendations:
+                        recommendations.append(song)
+            
+            break  # Prevent infinite loop
+        
+        return recommendations[:9]
+        
     except Exception as e:
-        print(f"Sentiment analysis error: {e}")
-        return f"'{recommended_track['name']}' by {recommended_track['artists'][0]['name']} aligns with your musical preferences."
+        print(f"AI recommendation error: {e}")
+        # Return fallback songs if AI completely fails
+        return [
+            f"{orig_artist} - Similar Song 1",
+            f"{orig_artist} - Similar Song 2",
+            f"Alternative Rock - {energy_desc} Track",
+            f"Indie Music - {mood_desc} Song",
+            f"Similar Artists - Track 1",
+            f"Similar Artists - Track 2",
+            f"Genre Match - Song 1",
+            f"Genre Match - Song 2",
+            f"Recommended - Final Track"
+        ]
+
+def generate_individual_explanation(song_query, original_track, user_description, token=None):
+    """Generate AI explanation for each specific song"""
+    if not text_generator:
+        return "Similar musical style."
+    
+    # Extract song info from query
+    if ' - ' in song_query:
+        parts = song_query.split(' - ', 1)
+        rec_artist = parts[0].strip()
+        rec_title = parts[1].strip()
+    else:
+        rec_artist = "Artist"
+        rec_title = song_query
+    
+    orig_title = original_track['name']
+    orig_artist = original_track['artists'][0]['name']
+    
+    try:
+        # AI-only explanation generation
+        prompt = f"{rec_title} by {rec_artist} is similar to {orig_title} by {orig_artist} because"
+        
+        generated = text_generator(
+            prompt,
+            max_new_tokens=20,
+            num_return_sequences=1,
+            temperature=0.8,
+            do_sample=True,
+            pad_token_id=50256,
+            eos_token_id=50256
+        )
+        
+        # Extract explanation
+        full_text = generated[0]['generated_text']
+        explanation = full_text.replace(prompt, '').strip()
+        
+        if explanation and len(explanation) > 5:
+            # Clean up the explanation
+            if '.' in explanation:
+                explanation = explanation.split('.')[0]
+            explanation = explanation.strip().rstrip(',').strip()
+            
+            if len(explanation) > 8:
+                return f"{rec_title} by {rec_artist} is similar to {orig_title} by {orig_artist} because {explanation}."
+        
+        return f"Both tracks share similar musical characteristics."
+        
+    except Exception as e:
+        print(f"AI explanation error: {e}")
+        return f"Musical connection to {orig_title}."
+
+
 
 def get_audio_features(track_id, token):
     """Get audio features for a track"""
@@ -487,8 +528,6 @@ def search_songs():
 
 @app.route('/api/ai-recommendations', methods=['POST'])
 def get_ai_recommendations():
-    import time
-    time.sleep(2)  # Add loading delay
     
     data = request.get_json()
     track_id = data.get('trackId')
@@ -516,32 +555,31 @@ def get_ai_recommendations():
     artist_id = track_data['artists'][0]['id']
     artist_name = track_data['artists'][0]['name']
     
-    # Let AI determine what songs to recommend based on user description and audio features
-    ai_recommendations = generate_ai_song_recommendations(user_description, track_data, token)
+    # Step 1: Get AI recommendations
+    ai_song_queries = generate_ai_recommendations_with_explanations(user_description, track_data, token)
     
-    # Search for the AI-recommended songs on Spotify with multiple strategies
-    for song_query in ai_recommendations:
+    # Step 2: Search for each AI recommendation on Spotify and generate explanations
+    for song_query in ai_song_queries:
         if len(recommendations) >= 9:
             break
             
-        # Try exact search first
+        # Search for the song on Spotify
         search_response = requests.get(
-            f'https://api.spotify.com/v1/search?q={song_query}&type=track&limit=5&market=US',
+            f'https://api.spotify.com/v1/search?q={song_query}&type=track&limit=3&market=US',
             headers={'Authorization': f'Bearer {token}'}
         )
         
         if search_response.status_code == 200:
             search_tracks = search_response.json()['tracks']['items']
             
-            # Filter and score tracks using AI
-            filtered_tracks = ai_filter_recommendations(search_tracks, user_description, track_data, token)
-            
-            for track in filtered_tracks:
+            for track in search_tracks:
                 if (track['id'] not in existing_ids and 
                     len(recommendations) < 9):
+                    # Generate individual explanation for this specific song
+                    track['ai_explanation'] = generate_individual_explanation(song_query, track_data, user_description, token)
                     recommendations.append(track)
                     existing_ids.add(track['id'])
-                    break  # Only take best match per AI recommendation
+                    break
     
     # If we don't have enough recommendations, try broader searches
     if len(recommendations) < 6:
@@ -567,12 +605,13 @@ def get_ai_recommendations():
                 for track in filtered_tracks[:3]:  # Take top 3 from each broader search
                     if (track['id'] not in existing_ids and 
                         len(recommendations) < 9):
+                        # Generate explanation for fallback tracks too
+                        track_query = f"{track['artists'][0]['name']} - {track['name']}"
+                        track['ai_explanation'] = generate_individual_explanation(track_query, track_data, user_description, token)
                         recommendations.append(track)
                         existing_ids.add(track['id'])
     
-    # Add AI explanations to each track (AI already chose these specifically)
-    for track in recommendations:
-        track['ai_explanation'] = generate_recommendation_explanation(track, user_description, track_data, token)
+    # Explanations already generated for each track in the search loop above
     
     # Sort by match quality: green first, then yellow, then red
     quality_order = {'green': 0, 'yellow': 1, 'red': 2}

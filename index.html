@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>Song Match</title>
-    <link href="https://fonts.googleapis.com/css2?family=Circular+Std:wght@300;400;500;700&display=fallback" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Circular+Std:wght@300;400;500;700&family=JetBrains+Mono:wght@700;800&display=fallback" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -12,29 +12,77 @@
         
         body {
             font-family: 'Circular Std', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: linear-gradient(135deg, #191414 0%, #1db954 100%);
+            background: 
+                radial-gradient(3px 3px at 50px 80px, rgba(29, 185, 84, 0.4), transparent),
+                radial-gradient(3px 3px at 150px 120px, rgba(30, 215, 96, 0.3), transparent),
+                radial-gradient(3px 3px at 250px 200px, rgba(29, 185, 84, 0.5), transparent),
+                radial-gradient(3px 3px at 350px 60px, rgba(30, 215, 96, 0.4), transparent),
+                radial-gradient(3px 3px at 450px 180px, rgba(29, 185, 84, 0.3), transparent),
+                radial-gradient(3px 3px at 80px 300px, rgba(30, 215, 96, 0.5), transparent),
+                radial-gradient(3px 3px at 180px 40px, rgba(29, 185, 84, 0.4), transparent),
+                radial-gradient(3px 3px at 280px 280px, rgba(30, 215, 96, 0.3), transparent),
+                radial-gradient(3px 3px at 380px 140px, rgba(29, 185, 84, 0.5), transparent),
+                radial-gradient(3px 3px at 120px 220px, rgba(30, 215, 96, 0.4), transparent),
+                repeating-linear-gradient(90deg, transparent, transparent 98px, rgba(29, 185, 84, 0.04) 100px, rgba(29, 185, 84, 0.04) 102px),
+                radial-gradient(circle at 20% 20%, rgba(29, 185, 84, 0.3) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(30, 215, 96, 0.2) 0%, transparent 40%),
+                radial-gradient(circle at 60% 40%, rgba(29, 185, 84, 0.15) 0%, transparent 50%),
+                linear-gradient(135deg, #0a0a0a 0%, #191414 25%, #1a1a1a 50%, #191414 75%, #0f0f0f 100%),
+                linear-gradient(45deg, transparent 40%, rgba(29, 185, 84, 0.05) 50%, transparent 60%);
+            background-size: 500px 400px, 500px 400px, 500px 400px, 500px 400px, 500px 400px, 500px 400px, 500px 400px, 500px 400px, 500px 400px, 500px 400px, 100px 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 200% 200%;
             color: #ffffff;
             min-height: 100vh;
             padding: 20px;
+            position: relative;
         }
+        
+
+        
+
+        
+
         
         .container {
             max-width: 1200px;
-            margin: 0 auto;
+            margin: 5vh auto;
             background: rgba(0, 0, 0, 0.7);
             border-radius: 12px;
             padding: 40px;
             backdrop-filter: blur(10px);
+            min-height: 600px;
+            transition: all 0.4s ease;
+            box-shadow: 0 0 30px rgba(29, 185, 84, 0.3), 0 0 60px rgba(29, 185, 84, 0.1);
         }
         
         h1 {
-            font-size: 3rem;
-            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.8rem;
+            font-weight: 800;
             text-align: center;
             margin-bottom: 40px;
             background: linear-gradient(45deg, #1db954, #1ed760);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        h1::before,
+        h1::after {
+            content: '';
+            flex: 1;
+            height: 20px;
+            margin: 0 20px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 20'%3E%3Cpath d='M0,10 Q20,0.5 40,10 T80,10 T120,10 T160,10 T200,10 T240,10 T280,10 T300,10' stroke='%231db954' stroke-width='1.5' fill='none' opacity='1'/%3E%3Cpath d='M0,10 Q30,3 60,10 T120,10 T180,10 T240,10 T300,10' stroke='%231ed760' stroke-width='1' fill='none' opacity='0.8'/%3E%3C/svg%3E");
+            background-repeat: repeat-x;
+            background-position: center;
+            background-size: 40px 20px;
+            opacity: 1;
+            transform: scaleY(5);
         }
         
         .search-container {
@@ -86,6 +134,16 @@
         
         .section {
             margin-bottom: 40px;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.5s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
         .section h3 {
@@ -457,7 +515,6 @@
     </style>
 </head>
 <body>
-
     
     <div class="container">
         <h1>Song Match</h1>
